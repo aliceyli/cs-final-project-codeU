@@ -1,11 +1,7 @@
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
 
 import redis.clients.jedis.Jedis;
 
@@ -19,13 +15,23 @@ public class WikiSearch {
 	// map from URLs that contain the term(s) to relevance score
 	private Map<String, Integer> map;
 
-	/**
+    // map for caching relevancy scores
+    private Map<String, Double> relevanceMap = new HashMap<String, Double>();
+    private String searchterm;
+    int urlsWithTerm = -1;
+    double idfNum = -1;
+
+
+
+
+    /**
 	 * Constructor.
 	 * 
 	 * @param map
 	 */
 	public WikiSearch(Map<String, Integer> map) {
-		this.map = map;
+        Map<String, Integer>freshMap = new TreeMap<>(map);
+		this.map = freshMap;
 	}
 
 	/**
@@ -55,7 +61,8 @@ public class WikiSearch {
 	 */
 	public void print() {
 		List<Entry<String, Integer>> entries = sort();
-		for (Entry<String, Integer> entry: entries) {
+
+        for (Entry<String, Integer> entry: entries) {
 			System.out.println(entry);
 		}
 	}
@@ -169,6 +176,57 @@ public class WikiSearch {
 		return entryList;
 	}
 
+    /**
+     * Sort the result
+     * @return
+     */
+    public double tf_idf_relevance(String url, JedisIndex index) {
+        int totalURLCount = index.termCounterKeys().size();
+        if (urlsWithTerm == -1) urlsWithTerm = index.getCountsFaster(searchterm).size();
+        if (idfNum == -1) idfNum = idfSmoothHelper(searchterm, totalURLCount, index);
+
+
+        if (relevanceMap.containsKey(url)) {
+            return relevanceMap.get(url);
+        }
+        else {
+
+            double tfNum = tfNormalizedHelper(url, index);
+
+            double tfIdf = tfNum * idfNum;
+
+            relevanceMap.put(url, tfIdf);
+
+            return tfIdf;
+        }
+
+    }
+
+    private double tfNormalizedHelper(String url, JedisIndex index) {
+
+        //Map<String, Integer> map = index.getCounts(url);
+
+        int rawCount = this.map.get(url);
+
+        double normalizedTF = 1 + Math.log(rawCount);
+
+        return normalizedTF;
+    }
+
+    private double idfSmoothHelper(String term, int urlSetSize, JedisIndex index) {
+
+        // idf smooth
+        idfNum = Math.log( 1 + (urlSetSize / Math.abs(1 + urlsWithTerm)));
+        return idfNum;
+    }
+
+    public void tfIdfPrint(JedisIndex index) {
+        List<Entry<String, Integer>> entries = tfIdfSort(index);
+
+        for (Entry<String, Integer> entry: entries) {
+            System.out.println(entry);
+        }
+    }
 
 	/**
 	 * Performs a search and makes a WikiSearch object.
@@ -178,9 +236,48 @@ public class WikiSearch {
 	 * @return
 	 */
 	public static WikiSearch search(String term, JedisIndex index) {
-		Map<String, Integer> map = index.getCounts(term);
-		return new WikiSearch(map);
+		Map<String, Integer> map = index.getCountsFaster(term);
+
+
+        WikiSearch ws =  new WikiSearch(map);
+        ws.searchterm = term;
+        return ws;
 	}
+
+
+    public  List<Entry<String, Integer>> tfIdfSort(final JedisIndex index) {
+        // FILL THIS IN!
+        List<Entry<String, Integer>> entryList = new LinkedList<Entry<String, Integer>>(map.entrySet());
+
+        for (Entry<String, Integer> entry : entryList) {
+            tf_idf_relevance(entry.getKey(), index);
+        }
+
+        Comparator<Entry<String,Integer>> entryComparator = new Comparator<Entry<String,Integer>>() {
+
+            public int compare(Entry<String,Integer> entry1, Entry<String,Integer> entry2) {
+                //descending sort
+
+                double entry1Score = relevanceMap.get(entry1.getKey());
+                double entry2Score = relevanceMap.get(entry2.getKey());
+
+                if (entry1Score > entry2Score) {
+                    return -1;
+                }
+                else if (entry1Score < entry2Score) {
+                    return 1;
+                }
+
+                return 0;
+            }
+        };
+        Collections.sort(entryList, entryComparator);
+        return entryList;
+    }
+
+
+
+
 
 	public static void main(String[] args) throws IOException {
 		
@@ -192,9 +289,13 @@ public class WikiSearch {
 		String term1 = "java";
 		System.out.println("Query: " + term1);
 		WikiSearch search1 = search(term1, index);
-		search1.print();
-		
-		// search for the second term
+		System.out.println("TF-IDF search:");
+        search1.tfIdfPrint(index);
+		System.out.println("\n\nNormal search results:");
+        search1.print();
+
+
+        // search for the second term
 		String term2 = "programming";
 		System.out.println("Query: " + term2);
 		WikiSearch search2 = search(term2, index);
