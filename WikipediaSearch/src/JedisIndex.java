@@ -44,7 +44,7 @@ public class JedisIndex {
 	 * @return Redis key.
 	 */
 	private String termCounterKey(String url) {
-		return "TermCounter:" + url;
+		return "TermCounter:" + compressURL(url);
 	}
 
 	/**
@@ -90,7 +90,7 @@ public class JedisIndex {
 		Set<String> urls = getURLs(term);
 		for (String url: urls) {
 			Integer count = getCount(url, term);
-			map.put(url, count);
+			map.put(decompressURL(url), count);
 		}
 		return map;
 	}
@@ -165,7 +165,7 @@ public class JedisIndex {
 	public List<Object> pushTermCounterToRedis(TermCounter tc) {
 		Transaction t = jedis.multi();
 		
-		String url = tc.getLabel();
+		String url = compressURL(tc.getLabel());
 		String hashname = termCounterKey(url);
 		
 		// if this page has already been indexed; delete the old hash
@@ -191,14 +191,27 @@ public class JedisIndex {
 		// loop through the search terms
 		for (String term: termSet()) {
 			System.out.println(term);
-			
 			// for each term, print the pages where it appears
 			Set<String> urls = getURLs(term);
 			for (String url: urls) {
+                //System.out.println(url);
 				Integer count = getCount(url, term);
 				System.out.println("    " + url + " " + count);
 			}
 		}
+	}
+	private String wikiHeader = "https://en.wikipedia.org/wiki/";
+
+	public String compressURL(String url){
+		if(!url.startsWith(wikiHeader))
+			return url;
+		return url.substring(wikiHeader.length());
+	}
+
+	public String decompressURL(String compressed){
+		if(compressed.startsWith(wikiHeader))
+			return compressed;
+		return wikiHeader + compressed;
 	}
 
 	/**
@@ -300,9 +313,9 @@ public class JedisIndex {
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis);
 		
-		//index.deleteTermCounters();
-		//index.deleteURLSets();
-		//index.deleteAllKeys();
+		/*index.deleteTermCounters();
+		index.deleteURLSets();
+		index.deleteAllKeys();*/
 		/*loadIndex(index);
 		
 		Map<String, Integer> map = index.getCountsFaster("the");
