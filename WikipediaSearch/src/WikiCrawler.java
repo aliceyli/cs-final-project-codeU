@@ -119,7 +119,10 @@ public class WikiCrawler {
 		
 		// make a WikiCrawler
 		Jedis jedis = JedisMaker.make();
-		JedisIndex index = new JedisIndex(jedis); 
+		JedisIndex index = new JedisIndex(jedis);
+		index.deleteTermCounters();
+		index.deleteURLSets();
+		index.deleteAllKeys();
 		String source = "https://en.wikipedia.org/wiki/Java_(programming_language)";
 		WikiCrawler wc = new WikiCrawler(source, index);
 		
@@ -128,7 +131,7 @@ public class WikiCrawler {
 		wc.queueInternalLinks(paragraphs);
 
 		// loop until we index a new page
-		int count = 50;
+		int count = 400;
 		String res;
 		do {
 			res = wc.crawl(false);
