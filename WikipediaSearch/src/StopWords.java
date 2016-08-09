@@ -16,7 +16,7 @@ public class StopWords {
      * Constructor
      *
      */
-    public StopWords() throws FileNotFoundException, IOException {
+    public StopWords() {
         try {
             FileReader input = new FileReader(STOPWORDFILE);
             BufferedReader bufRead = new BufferedReader(input);

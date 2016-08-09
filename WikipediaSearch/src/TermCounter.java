@@ -75,10 +75,13 @@ public class TermCounter {
 	public void processText(String text) {
 		// replace punctuation with spaces, convert to lower case, and split on whitespace
 		String[] array = text.replaceAll("\\pP", " ").toLowerCase().split("\\s+");
+        StopWords termsNotIndexed = new StopWords();
 		
 		for (int i=0; i<array.length; i++) {
-			String term = array[i];
-			incrementTermCount(term);
+            String term = array[i];
+            if (!termsNotIndexed.contains(term)) {
+                incrementTermCount(term);
+            }
 		}
 	}
 
