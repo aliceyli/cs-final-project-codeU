@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jedis-2.8.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/cs-application-retrieval-lab-codeU/javacs-lab12/lib/jedis-2.8.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="jsoup-1.8.3">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/cs-application-retrieval-lab-codeU/javacs-lab12/lib/jsoup-1.8.3.jar!/" />
+      <root url="jar://$USER_HOME$/cs-application-retrieval-lab-codeU/javacs-lab12/lib/junit-4.12.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
